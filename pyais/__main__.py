@@ -1,13 +1,30 @@
-from .message import decode
-from .net import ais_stream
+from traceback import print_exc
+from typing import Iterator
+
+from .ais_message import AISMessage
+from .constants import NMEAType
+from .nmea_message import NMEAMessage
+from .stream import Stream
 
 
 def main():
-    for msg in ais_stream():
-        if msg[0] == ord('!'):
-            print(decode(msg))
-        else:
-            print("Unparsed msg: " + msg.decode('ascii'))
+    with Stream() as s:
+        messages: Iterator[NMEAMessage] = iter(s)
+        while True:
+            try:
+                nmea = next(messages)
+                if nmea.nmea_type == NMEAType.ENCAPSULATED:
+                    ais = AISMessage(nmea)
+                    print(ais)
+                else:
+                    print(f'Unsupported encoding for {nmea}')
+            except StopIteration:
+                messages = iter(s)
+            except Exception:
+                print_exc()
 
 
-main()
+try:
+    main()
+except KeyboardInterrupt:
+    pass

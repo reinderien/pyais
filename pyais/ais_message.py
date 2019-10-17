@@ -1,22 +1,51 @@
-from .constants import *
+from pprint import pformat
+from struct import unpack
+from .constants import AISType
+from .nmea_message import NMEAMessage
 from .util import *
-from functools import reduce
-from operator import xor
 
 
-LAST = None
-
-
-def checksum(msg):
+class AISMessage:
     """
-    Compute the checksum of a given message
-    :param msg: message
-    :return: hex
+    AIS message. Refer to
+    https://en.wikipedia.org/wiki/Automatic_identification_system#Message_format
+    https://gpsd.gitlab.io/gpsd/AIVDM.html
     """
-    msg = msg[1:].split(b'*', 1)[0]
-    return reduce(xor, msg)
+
+    __slots__ = (
+        'nmea',
+        'ind',
+        'attrs',
+        'msg_type',
+    )
+
+    def __init__(self, nmea: NMEAMessage):
+        self.nmea = nmea
+        self.ind = 0
+        self.attrs = {}
+
+        if nmea.talker != 'AI' or nmea.msg_type not in ('VDM', 'VDO'):
+            raise ValueError(f'"{nmea}" is not a supported AIS message')
+
+        self.msg_type = AISType(self.eat(6))
+
+    def eat(self, n: int) -> int:
+        bits = self.nmea.bits[self.ind: self.ind + n]
+        bits.fill()
+        while len(bits) < 32:
+            bits.frombytes(b'\0')
+        (x,) = unpack('<I', bits.tobytes())
+        self.ind += n
+        return x
+
+    def __str__(self):
+        return f'{self.msg_type.name}: {pformat(self.attrs)}'
 
 
+
+
+
+'''
 def decode_msg_1(bit_vector):
     """
     AIS Vessel position report using SOTDMA (Self-Organizing Time Division Multiple Access)
@@ -109,13 +138,6 @@ def decode_msg_5(bit_vector):
     }
 
 
-def decode_msg_6(bit_vector):
-    pass
-
-
-def decode_msg_7(bit_vector):
-    pass
-
 
 def decode_msg_8(bit_vector):
     """
@@ -131,41 +153,6 @@ def decode_msg_8(bit_vector):
         'data': to_int(bit_vector[56::], 2),
     }
 
-
-def decode_msg_9(bit_vector):
-    pass
-
-
-def decode_msg_10(bit_vector):
-    pass
-
-
-def decode_msg_11(bit_vector):
-    pass
-
-
-def decode_msg_12(bit_vector):
-    pass
-
-
-def decode_msg_13(bit_vector):
-    pass
-
-
-def decode_msg_14(bit_vector):
-    pass
-
-
-def decode_msg_15(bit_vector):
-    pass
-
-
-def decode_msg_16(bit_vector):
-    pass
-
-
-def decode_msg_17(bit_vector):
-    pass
 
 
 def decode_msg_18(bit_vector):
@@ -196,97 +183,4 @@ def decode_msg_18(bit_vector):
     }
 
 
-def decode_msg_19(bit_vector):
-    pass
-
-
-def decode_msg_20(bit_vector):
-    pass
-
-
-def decode_msg_21(bit_vector):
-    pass
-
-
-def decode_msg_22(bit_vector):
-    pass
-
-
-def decode_msg_23(bit_vector):
-    pass
-
-
-def decode_msg_24(bit_vector):
-    pass
-
-
-# Decoding Lookup Table
-DECODE_MSG = [
-    None,
-    decode_msg_1,
-    decode_msg_2,
-    decode_msg_3,
-    decode_msg_4,
-    decode_msg_5,
-    decode_msg_6,
-    decode_msg_7,
-    decode_msg_8,
-    decode_msg_9,
-    decode_msg_10,
-    decode_msg_11,
-    decode_msg_12,
-    decode_msg_13,
-    decode_msg_14,
-    decode_msg_15,
-    decode_msg_16,
-    decode_msg_17,
-    decode_msg_18,
-    decode_msg_19,
-    decode_msg_20,
-    decode_msg_21,
-    decode_msg_22,
-    decode_msg_23,
-    decode_msg_24
-]
-
-
-def decode(msg):
-    """
-    Decodes an AIS message. This includes checksum validation and sentencing.
-    This method requires the full raw AIS message encoded in ASCII or Unicode.
-    :param msg: AIS message encoded in ASCII or Unicode
-    :return: A dictionary containing the decoded information or None if an error occurs
-    """
-    m_typ, sentence_total_count, cur_sentence_num, seq_id, channel, data, chcksum = msg.split(b',')
-    sentence_total_count = int(sentence_total_count.decode('ascii'))
-    cur_sentence_num = int(cur_sentence_num.decode('ascii'))
-
-    # Validate checksum
-    expected = int(chcksum[2:].decode('ascii'), 16)
-    actual = checksum(msg)
-    if expected != actual:
-        print(f"{ANSI_RED}Invalid Checksum {actual} != {expected}; dropping message!{ANSI_RESET}")
-        return None
-
-    # Assemble multiline messages
-    if sentence_total_count != 1:
-        global LAST
-        if LAST is None and cur_sentence_num != 1:
-            print(f"{ANSI_RED}Something is out of order here..{ANSI_RESET}")
-            return None
-
-        elif sentence_total_count != cur_sentence_num:
-            LAST = data if not LAST else LAST + data
-            return None
-
-        data = LAST + data
-        LAST = ''
-
-    decoded_data = ascii6_to_bin(data)
-    msg_type = int(decoded_data[0:6], 2)
-
-    if 0 < msg_type < 25:
-        print(msg_type)  # 21, 24, 8
-        return DECODE_MSG[msg_type](decoded_data)
-
-    return None
+'''
