@@ -1,23 +1,27 @@
 from traceback import print_exc
-from typing import Iterator
 
 from .ais_message import AISMessage
-from .constants import NMEAType
 from .nmea_message import NMEAMessage
 from .stream import Stream
 
 
+def decode(nmea: NMEAMessage):
+    if AISMessage.is_ais(nmea):
+        try:
+            ais = AISMessage(nmea)
+            print(ais)
+        except Exception as e:
+            raise ValueError(f'Failed to decode AIS message "{nmea}"') from e
+    else:
+        print(f'Unsupported encoding for {nmea}')
+
+
 def main():
     with Stream() as s:
-        messages: Iterator[NMEAMessage] = iter(s)
+        messages = iter(s)
         while True:
             try:
-                nmea = next(messages)
-                if nmea.nmea_type == NMEAType.ENCAPSULATED:
-                    ais = AISMessage(nmea)
-                    print(ais)
-                else:
-                    print(f'Unsupported encoding for {nmea}')
+                decode(next(messages))
             except StopIteration:
                 messages = iter(s)
             except Exception:

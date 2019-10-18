@@ -1,13 +1,13 @@
 from pprint import pformat
 from struct import unpack
-from .constants import AISType
+from .constants import AISGroup, AISType, NMEAType
 from .nmea_message import NMEAMessage
 from .util import *
 
 
 class AISMessage:
     """
-    AIS message. Refer to
+    AIS (Automatic Identification System) message. Refer to
     https://en.wikipedia.org/wiki/Automatic_identification_system#Message_format
     https://gpsd.gitlab.io/gpsd/AIVDM.html
     """
@@ -16,6 +16,7 @@ class AISMessage:
         'nmea',
         'ind',
         'attrs',
+        'group',
         'msg_type',
     )
 
@@ -24,10 +25,20 @@ class AISMessage:
         self.ind = 0
         self.attrs = {}
 
-        if nmea.talker != 'AI' or nmea.msg_type not in ('VDM', 'VDO'):
+        if not self.is_ais(nmea):
             raise ValueError(f'"{nmea}" is not a supported AIS message')
 
-        self.msg_type = AISType(self.eat(6))
+        self.group = AISGroup(nmea.msg_type)
+        if nmea.nmea_type == NMEAType.ENCAPSULATED and self.group in (
+            AISGroup.OWN_VESSEL, AISGroup.OTHER_VESSEL
+        ):
+            self.msg_type = AISType(self.eat(6))
+        else:
+            self.msg_type = None
+
+    @staticmethod
+    def is_ais(nmea: NMEAMessage) -> bool:
+        return nmea.talker == 'AI'
 
     def eat(self, n: int) -> int:
         bits = self.nmea.bits[self.ind: self.ind + n]
@@ -39,7 +50,9 @@ class AISMessage:
         return x
 
     def __str__(self):
-        return f'{self.msg_type.name}: {pformat(self.attrs)}'
+        if self.msg_type:
+            return f'{self.group.name}/{self.msg_type.name}: {pformat(self.attrs)}'
+        return f'{self.group.name} unsupported: {self.nmea.raw}'
 
 
 

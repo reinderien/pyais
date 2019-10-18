@@ -12,6 +12,45 @@ class NMEAType(Enum):
     ENCAPSULATED = '!'
 
 
+class AISGroup(Enum):
+    # i.e. !AIVDO,1,1,,B,F000h>B2N2P3D73EB6`>6bT20000,0*75,runhtest,1172243748.04
+    OWN_VESSEL = 'VDO'
+
+    # i.e. !AIVDM,1,1,,A,33=HuF5000rsnlvHbvGt5b;:0000,0*29,rnhgb,1171830306.92
+    OTHER_VESSEL = 'VDM'
+
+    # i.e.
+    # $AITXT,01,01,91,FREQ,2087,2088*57
+    # $AITXT,01,01,50,AIS: GPS: no valid fix*4A
+    INFO = 'TXT'
+
+    # i.e. $AIALR,000000.00,002,V,V,AIS: Antenna VSWR exceeds limit*45,runhtest,1172243686.02
+    ALARM = 'ALR'
+
+    # https://yachtelectronics.blogspot.com/2011/02/srt-proprietary-ais-commands.html
+    # i.e. $AISSD,@@@@@@@,@@@@@@@@@@@@@@@@@@@@,000,000,00,00,0,00*3C
+    SHIP_STATIC_DATA = 'SSD'
+
+    # https://yachtelectronics.blogspot.com/2011/02/srt-proprietary-ais-commands.html
+    VESSEL_STATIC_DATA = 'VSD'
+
+    # http://schwehr.org/blog/archives/2007-02.html
+    # i.e. !AIBRF,0000012345,,0*43,runhtest,1172243745.36
+    # Broadcast?? = 'BRF'
+
+    # http://captainunlikely.com/blog/2015/07/10/under-the-hood-of-the-ais-600-transmitter/
+    # i.e. $AIAIQ,VER*3C
+    # ?? = 'AIQ'
+
+    # http://captainunlikely.com/blog/2015/07/10/under-the-hood-of-the-ais-600-transmitter/
+    # i.e. $AIVER,,,AI,GARMIN@,,9829,A038,G.2.14,05*36
+    VERSION = 'VER'
+
+    # https://fccid.io/CKEJHS-183/Test-Report/Test-Report-1-1846406
+    # i.e. $AIACA,4,5200.0,N,00100.0,W,5000.0,N,00300.0,W,5,2084,0,2065,0,0,0,D,1,111840.00*3F
+    # ?? = ACA
+
+
 class AISType(Enum):
     # Refer to https://gpsd.gitlab.io/gpsd/AIVDM.html
     POS_CLASS_A1 = 1

@@ -29,22 +29,24 @@ class NMEAMessage:
     def __init__(self, raw: str):
         self.raw = raw
         self.bits: bitarray = None
-        self.nmea_type = NMEAType(raw[0])
+        fields = raw.split(',')
+
+        msg_type = fields[0]
+        self.nmea_type = NMEAType(msg_type[0])
+        self.talker = msg_type[1:3]
+        self.msg_type = msg_type[3:]
         if self.nmea_type != NMEAType.ENCAPSULATED:
             return  # silently give up - this is not invalid but we don't support it
 
         (
-            msg_type,
             sentence_count,
             sentence_index,
             seq_id,
             channel,
             data,
             checksum,
-        ) = raw.split(',')
+        ) = fields[1:]
 
-        self.talker = msg_type[1:3]
-        self.msg_type = msg_type[3:]
         self.sentence_count = int(sentence_count)
         self.sentence_index = int(sentence_index)
         self.seq_id = seq_id
@@ -93,6 +95,7 @@ class NMEAMessage:
                 bits.pop()
 
         messages[0].bits = bits
+        messages[0].raw = tuple(m.raw for m in messages)
         return messages[0]
 
     def follows(self, prev) -> bool:
