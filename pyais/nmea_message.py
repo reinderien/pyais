@@ -1,8 +1,16 @@
-from .constants import NMEAType
-from bitarray import bitarray
+from enum import Enum
 from functools import reduce
 from operator import xor
+from pprint import pformat
 from typing import Sequence
+
+from .bits import Bits
+
+
+class NMEAType(Enum):
+    COMMENT = '#'
+    DELIMITED = '$'
+    ENCAPSULATED = '!'
 
 
 class NMEAMessage:
@@ -28,7 +36,7 @@ class NMEAMessage:
 
     def __init__(self, raw: str):
         self.raw = raw
-        self.bits: bitarray = None
+        self.bits: Bits = None
         fields = raw.split(',')
 
         msg_type = fields[0]
@@ -71,31 +79,10 @@ class NMEAMessage:
             assert not ((self.sentence_count > 1) ^
                         bool(self.seq_id))
 
-    @staticmethod
-    def _char_to_bin(c: str) -> int:
-        c = ord(c)
-
-        if 0x30 <= c <= 0x57:
-            c -= 0x30
-        elif 0x60 <= c <= 0x77:
-            c -= 0x38
-        else:
-            raise ValueError(f'Invalid data character {c}')
-
-        return c
-
     @classmethod
     def reduce(cls, messages: Sequence):
-        bits = bitarray(endian='little')
-
-        for msg in messages:
-            for c in msg.data:
-                bits.frombytes(bytes((cls._char_to_bin(c),)))
-                bits.pop()
-                bits.pop()
-
-        messages[0].bits = bits
-        messages[0].raw = tuple(m.raw for m in messages)
+        messages[0].bits = Bits(''.join(msg.data for msg in messages))
+        messages[0].raw = [m.raw for m in messages]
         return messages[0]
 
     def follows(self, prev) -> bool:
@@ -109,18 +96,18 @@ class NMEAMessage:
             and self.sentence_index == prev.sentence_index + 1
         )
 
-    def single(self) -> bool:
+    def is_single(self) -> bool:
         return (
             not self.seq_id
             and self.sentence_index == 1
             and self.sentence_count == 1
         )
 
-    def multi(self) -> bool:
+    def is_multi(self) -> bool:
         return (
             self.seq_id
             and self.sentence_count > 1
         )
 
     def __str__(self):
-        return self.raw
+        return pformat(self.raw)

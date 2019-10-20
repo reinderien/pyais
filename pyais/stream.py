@@ -1,7 +1,6 @@
 from socket import AF_INET, SOCK_STREAM, socket
 from typing import Iterable
-from .constants import NMEAType
-from .nmea_message import NMEAMessage
+from .nmea_message import NMEAMessage, NMEAType
 
 
 class Stream:
@@ -44,9 +43,9 @@ class Stream:
                       f'   {msg}')
                 queue.clear()
 
-            if msg.single():
+            if msg.is_single():
                 yield NMEAMessage.reduce([msg])
-            elif msg.multi():
+            elif msg.is_multi():
                 queue.append(msg)
                 if msg.sentence_index == msg.sentence_count:
                     yield NMEAMessage.reduce(queue)

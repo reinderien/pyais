@@ -64,7 +64,7 @@ def signed(bit_vector):
     """
     Convert bit sequence to signed integer
     :param bit_vector: bit sequence
-    :return: singed int
+    :return: signed int
     """
     b = BitArray(bin=bit_vector)
     return b.int
