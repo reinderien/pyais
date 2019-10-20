@@ -124,8 +124,13 @@ def decode(bits: Bits) -> dict:
         'lat_deg': decode_pos(bits.int(27), 91),
         'course_deg': decode_course(bits.uint(12)),
         'heading_deg': decode_heading(bits.uint(9)),
+    })
 
-        'time': decode_time(bits.uint(6)),
+    time_mode, timestamp = decode_time(bits.uint(6))
+
+    d.update({
+        'time_mode': time_mode,
+        'time': timestamp,
         'special_manoeuvre': SpecialManoeuvreStatus(bits.uint(2)),
         'spare': bits.raw(3),
         'raim_in_use': bits.bool(),
